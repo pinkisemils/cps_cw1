@@ -195,15 +195,15 @@ int main()
             genomes[i].bits.push_back(int_dist(e));
     }
     auto population = update_epoch(POP_SIZE, genomes);
-    for (unsigned int generation = 0; generation < pow(2, 30); ++generation)
+    for (unsigned int generation = 0; generation < pow(2, 10); ++generation)
     {
         for (unsigned int i = 0; i < POP_SIZE; ++i)
             genomes[i].fitness = check_guess(population[i]);
         update_epoch(POP_SIZE, genomes);
         if (generation % 10 == 0)
         {
-            cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-            cout << "Diff: " << check_guess(decode(best)) << endl;
+            //cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
+            //cout << "Diff: " << check_guess(decode(best)) << endl;
         }
     }
     return 0;
