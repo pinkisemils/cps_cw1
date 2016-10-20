@@ -240,8 +240,8 @@ int main()
         population = update_epoch(POP_SIZE, genomes);
         if (generation % 10 == 0)
         {
-            //cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-            //cout << "Diff: " << check_guess(decode(best)) << endl;
+            cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
+            cout << "Diff: " << check_guess(decode(best)) << endl;
         }
     }
     cout << "Best generation: " << get_guess(decode(best)) << endl;

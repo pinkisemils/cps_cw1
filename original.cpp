@@ -203,8 +203,6 @@ int main()
 		if (generation % 10 == 0)
 		{
 			cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-			cout << "Genome 64 fitness: " << genomes[64].fitness << endl;
-
 			cout << "Diff: " << check_guess(decode(best)) << endl;
 		}
 	}

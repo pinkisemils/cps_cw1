@@ -50,8 +50,6 @@ void grab_N_best(const unsigned int N, const unsigned int copies, vector<genome>
 {
     sort(old_pop.begin(), old_pop.end(), comp_by_fitness);
     best = old_pop[0];
-    // preallocating to make it thread-safe
-    //new_pop.reserve(old_pop.size() + 1);
     for (unsigned int n = 0; n < N; ++n)
         for (unsigned int i = 0; i < copies; ++i)
             new_pop[n * copies + i] = old_pop[n];
@@ -127,8 +125,6 @@ void epoch_st(unsigned int pop_size,
         cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, baby1, baby2);
         mutate(MUTATION_RATE, baby1);
         mutate(MUTATION_RATE, baby2);
-        //cout<< "itr: " << itr << endl;
-        //cout<< "itr + 1 + offset: " << itr + 1 + offset << endl;
         babies[itr + offset] = baby1;
         babies[itr + 1 + offset ] = baby2;
     }
@@ -146,26 +142,16 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     int offset = NUM_ELITE * NUM_COPIES_ELITE;
     int cores = std::thread::hardware_concurrency();
     int step = (pop_size - offset) / cores;
-    //cout<<"step" << step << endl;
-    //cout<<"offset: " << offset<< endl;
-    //cout<<"pop size: " << pop_size<< endl;
-    //cout << " Addr of genomes: " << &genomes << endl;
-    //cout << " Addr of babies: " << &babies << endl;
     for (int i=0; i< cores; ++i)
     {
         threads.push_back(std::thread([&pop_size, &fitness, &genomes, &babies, &step, &offset, i](){
                 epoch_st(pop_size, fitness,  genomes, babies, step, step * i + offset);
         }));
-        //threads[i].join();
 
     }
     for (auto &t : threads)
     {
         t.join();
-    }
-    for (auto g : babies){
-        volatile int shit = g.fitness;
-
     }
     return babies;
 }
@@ -213,7 +199,6 @@ unsigned int check_guess(const vector<unsigned int> &guess)
 
     for (unsigned int i = 0; i < s.length(); ++i)
     {
-        //cout<<^
         diff += abs(s[i] - secret[i]);
     }
     return diff;
@@ -251,8 +236,8 @@ int main()
         population = update_epoch(POP_SIZE, genomes);
         if (generation % 10 == 0)
         {
-            //cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-            //cout << "Diff: " << check_guess(decode(best)) << endl;
+            cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
+            cout << "Diff: " << check_guess(decode(best)) << endl;
         }
     }
     cout << "Best generation: " << get_guess(decode(best)) << endl;
