@@ -1,16 +1,22 @@
 CXX=g++
-all: fastm slowm serial openmp
+t=time
+all: build time
 
-fastm:  main.cpp
-	$(CXX) main.cpp -O3 -g -fopenmp -o fastm 
-slowm:  main.cpp
-	$(CXX) main.cpp -O0 -g -fopenmp -o slowm 
+build:	threaded serial openmp
 
-serial: original.cpp
-	$(CXX) original.cpp -O3 -o serial
+threaded:  threaded.cpp
+	$(CXX) threaded.cpp -O3 -g -fopenmp -o threaded 
+
+serial: serial.cpp
+	$(CXX) serial.cpp -O3 -o serial
 
 openmp: openmp.cpp
 	$(CXX) openmp.cpp -O3 -g -fopenmp -lpthread -o openmp
 
+time:	threaded serial openmp
+	$(t) ./threaded > /dev/null
+	$(t) ./serial > /dev/null
+	$(t) ./openmp > /dev/null
+
 clean:
-	rm fastm slowm serial openmp
+	rm threaded serial openmp
