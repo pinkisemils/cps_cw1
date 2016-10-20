@@ -7,6 +7,7 @@
 #include <chrono>
 #include <array>
 #include <cstring>
+#include <thread>
 
 using namespace std;
 using namespace std::chrono;
@@ -49,6 +50,8 @@ void grab_N_best(const unsigned int N, const unsigned int copies, vector<genome>
 {
     sort(old_pop.begin(), old_pop.end(), comp_by_fitness);
     best = old_pop[0];
+    // preallocating to make it thread-safe
+    //new_pop.reserve(old_pop.size() + 1);
     for (unsigned int n = 0; n < N; ++n)
         for (unsigned int i = 0; i < copies; ++i)
             new_pop[n * copies + i] = old_pop[n];
@@ -106,15 +109,16 @@ void mutate(double mutation_rate, genome &gen)
     }
 }
 
-vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
+void epoch_st(unsigned int pop_size,
+             int fitness,
+             vector<genome> &genomes,
+             vector<genome> &babies,
+             int step_size,
+             int offset)
 {
-    auto fitness = calculate_total_fitness(genomes);
-    vector<genome> babies(pop_size);
-
-    if (((NUM_COPIES_ELITE * NUM_ELITE) % 2) == 0)
-        grab_N_best(NUM_ELITE, NUM_COPIES_ELITE, genomes, babies);
-    for (unsigned int i = NUM_ELITE * NUM_COPIES_ELITE; i < pop_size; i += 2)
-    {
+    int counter = 0;
+    for (int itr=0; itr < step_size; itr+=2) {
+        ++counter;
         auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
         auto dad = roulette_wheel_selection(pop_size, fitness, genomes);
         genome baby1;
@@ -123,8 +127,45 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
         cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, baby1, baby2);
         mutate(MUTATION_RATE, baby1);
         mutate(MUTATION_RATE, baby2);
-        babies[i] = baby1;
-        babies[i + 1] = baby2;
+        //cout<< "itr: " << itr << endl;
+        //cout<< "itr + 1 + offset: " << itr + 1 + offset << endl;
+        babies[itr + offset] = baby1;
+        babies[itr + 1 + offset ] = baby2;
+    }
+
+}
+
+vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
+{
+    auto fitness = calculate_total_fitness(genomes);
+    vector<genome> babies(pop_size);
+
+    if (((NUM_COPIES_ELITE * NUM_ELITE) % 2) == 0)
+        grab_N_best(NUM_ELITE, NUM_COPIES_ELITE, genomes, babies);
+    vector<thread> threads;
+    int offset = NUM_ELITE * NUM_COPIES_ELITE;
+    int cores = std::thread::hardware_concurrency();
+    int step = (pop_size - offset) / cores;
+    //cout<<"step" << step << endl;
+    //cout<<"offset: " << offset<< endl;
+    //cout<<"pop size: " << pop_size<< endl;
+    //cout << " Addr of genomes: " << &genomes << endl;
+    //cout << " Addr of babies: " << &babies << endl;
+    for (int i=0; i< cores; ++i)
+    {
+        threads.push_back(std::thread([&pop_size, &fitness, &genomes, &babies, &step, &offset, i](){
+                epoch_st(pop_size, fitness,  genomes, babies, step, step * i + offset);
+        }));
+        //threads[i].join();
+
+    }
+    for (auto &t : threads)
+    {
+        t.join();
+    }
+    for (auto g : babies){
+        volatile int shit = g.fitness;
+
     }
     return babies;
 }
@@ -154,6 +195,7 @@ vector<unsigned int> decode(genome &gen)
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
+    guesses.reserve(genomes.size());
 
     genomes = epoch(pop_size, genomes);
     for (unsigned int i = 0; i < genomes.size(); ++i)
@@ -170,7 +212,10 @@ unsigned int check_guess(const vector<unsigned int> &guess)
     unsigned int diff = 0;
 
     for (unsigned int i = 0; i < s.length(); ++i)
+    {
+        //cout<<^
         diff += abs(s[i] - secret[i]);
+    }
     return diff;
 }
 
@@ -192,18 +237,22 @@ int main()
     for (unsigned int i = 0; i < POP_SIZE; ++i)
     {
         for (unsigned int j = 0; j < CHROMO_LENGTH; ++j)
+        {
             genomes[i].bits.push_back(int_dist(e));
+        }
     }
     auto population = update_epoch(POP_SIZE, genomes);
-    for (unsigned int generation = 0; generation < pow(2, 10); ++generation)
+    for (unsigned int generation = 0; generation < 2048; ++generation)
     {
         for (unsigned int i = 0; i < POP_SIZE; ++i)
+        {
             genomes[i].fitness = check_guess(population[i]);
-        update_epoch(POP_SIZE, genomes);
+        }
+        population = update_epoch(POP_SIZE, genomes);
         if (generation % 10 == 0)
         {
-            //cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-            //cout << "Diff: " << check_guess(decode(best)) << endl;
+            cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
+            cout << "Diff: " << check_guess(decode(best)) << endl;
         }
     }
     return 0;
