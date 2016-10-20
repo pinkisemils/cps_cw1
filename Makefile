@@ -10,7 +10,7 @@ serial: original.cpp
 	$(CXX) original.cpp -O3 -o serial
 
 openmp: openmp.cpp
-	$(CXX) openmp.cpp -O3 -g -fopenmp -o openmp
+	$(CXX) openmp.cpp -O3 -g -fopenmp -lpthread -o openmp
 
 clean:
-	rm fastm slowm
+	rm fastm slowm serial openmp

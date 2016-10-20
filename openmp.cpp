@@ -143,7 +143,7 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     int offset = NUM_ELITE * NUM_COPIES_ELITE;
 
     genome *bbs = &babies[0];
-    # pragma omp parallel for 
+    # pragma omp parallel for default(shared) num_threads(4)
     for (int i=offset; i< pop_size; i=i+2)
     {
         auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
