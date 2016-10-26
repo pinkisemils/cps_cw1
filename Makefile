@@ -20,3 +20,8 @@ time:	threaded serial openmp
 
 clean:
 	rm threaded serial openmp
+
+perf: threaded serial openmp
+	perf record --output openmp.perf ./openmp
+	perf record --output serial.perf ./serial
+	perf record --output threaded.perf ./threaded
