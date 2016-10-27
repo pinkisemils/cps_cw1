@@ -21,7 +21,19 @@ time:	threaded serial openmp
 clean:
 	rm threaded serial openmp
 
-perf: threaded serial openmp
-	perf record --output openmp.perf ./openmp
-	perf record --output serial.perf ./serial
-	perf record --output threaded.perf ./threaded
+perf:
+	perf record -g --output openmp.perf ./openmp
+	perf script -i openmp.perf | c++filt | gprof2dot -f perf | dot -Tpng -o openmp-perf.png
+	perf record -g --output serial.perf ./serial
+	perf script -i serial.perf | c++filt | gprof2dot -f perf | dot -Tpng -o serial-perf.png
+	perf record -g --output threaded.perf ./threaded
+	perf script -i threaded.perf | c++filt | gprof2dot -f perf | dot -Tpng -o threaded-perf.png
+
+callgrind:
+	valgrind --tool=callgrind --callgrind-out-file=openmp.cg ./openmp
+	gprof2dot -f callgrind <openmp.cg | dot -Tpng -o openmp-cg.png
+	valgrind --tool=callgrind --callgrind-out-file=serial.cg ./serial
+	gprof2dot -f callgrind <serial.cg | dot -Tpng -o serial-cg.png
+	valgrind --tool=callgrind --callgrind-out-file=threaded.cg ./threaded
+	gprof2dot -f callgrind <threaded.cg | dot -Tpng -o threaded-cg.png
+
