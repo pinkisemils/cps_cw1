@@ -13,13 +13,18 @@ serial: serial.cpp
 openmp: openmp.cpp
 	$(CXX) openmp.cpp -O3 -g -fopenmp -lpthread -o openmp
 
-time:	threaded serial openmp
-	$(t) ./threaded > /dev/null
+futures: futures.cpp
+	$(CXX) futures.cpp -O3 -g -fopenmp -lpthread -o futures
+
+time:	threaded serial openmp futures
 	$(t) ./serial > /dev/null
+	$(t) ./threaded > /dev/null
 	$(t) ./openmp > /dev/null
+	$(t) ./futures > /dev/null
+
 
 clean:
-	rm threaded serial openmp
+	rm threaded serial openmp futures
 
 perf:
 	perf record -g --output openmp.perf ./openmp
@@ -28,6 +33,8 @@ perf:
 	perf script -i serial.perf | c++filt | gprof2dot -f perf | dot -Tpng -o serial-perf.png
 	perf record -g --output threaded.perf ./threaded
 	perf script -i threaded.perf | c++filt | gprof2dot -f perf | dot -Tpng -o threaded-perf.png
+	perf record -g --output futures.perf ./futures
+	perf script -i futures.perf | c++filt | gprof2dot -f perf | dot -Tpng -o futures-perf.png
 
 callgrind:
 	valgrind --tool=callgrind --callgrind-out-file=openmp.cg ./openmp
@@ -36,4 +43,6 @@ callgrind:
 	gprof2dot -f callgrind <serial.cg | dot -Tpng -o serial-cg.png
 	valgrind --tool=callgrind --callgrind-out-file=threaded.cg ./threaded
 	gprof2dot -f callgrind <threaded.cg | dot -Tpng -o threaded-cg.png
+	valgrind --tool=callgrind --callgrind-out-file=futures.cg ./futures
+	gprof2dot -f callgrind <futures.cg | dot -Tpng -o futures-cg.png
 
