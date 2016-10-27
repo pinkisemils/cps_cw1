@@ -1,30 +1,23 @@
 CXX=g++
 t=time
+SOURCES = $(wildcard *.cpp)
+EXEC = $(SOURCES:.cpp=.out)
+
+CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++11
+
+%.out: %.cpp
+	$(CXX) $(CXXFLAGS) $< -o $@
+
+build: $(EXEC)
+
 all: build time
 
-build:	threaded serial openmp
 
-threaded:  threaded.cpp
-	$(CXX) threaded.cpp -O3 -g -fopenmp -o threaded 
-
-serial: serial.cpp
-	$(CXX) serial.cpp -O3 -o serial
-
-openmp: openmp.cpp
-	$(CXX) openmp.cpp -O3 -g -fopenmp -lpthread -o openmp
-
-futures: futures.cpp
-	$(CXX) futures.cpp -O3 -g -fopenmp -lpthread -o futures
-
-time:	threaded serial openmp futures
-	$(t) ./serial > /dev/null
-	$(t) ./threaded > /dev/null
-	$(t) ./openmp > /dev/null
-	$(t) ./futures > /dev/null
-
+time: $(EXEC)
+	 $(foreach e,$(EXEC), echo $(e) && $(t) ./$(e) ;)
 
 clean:
-	rm threaded serial openmp futures
+	rm -f *.out
 
 perf:
 	perf record -g --output openmp.perf ./openmp
@@ -45,4 +38,4 @@ callgrind:
 	gprof2dot -f callgrind <threaded.cg | dot -Tpng -o threaded-cg.png
 	valgrind --tool=callgrind --callgrind-out-file=futures.cg ./futures
 	gprof2dot -f callgrind <futures.cg | dot -Tpng -o futures-cg.png
-
+.PHONY: build
