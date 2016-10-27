@@ -200,11 +200,8 @@ int main()
 		for (unsigned int i = 0; i < POP_SIZE; ++i)
 			genomes[i].fitness = check_guess(population[i]);
 		population = update_epoch(POP_SIZE, genomes);
-		if (generation % 10 == 0)
-		{
-			cout << "Generation " << generation << ": " << get_guess(decode(best)) << endl;
-			cout << "Diff: " << check_guess(decode(best)) << endl;
-		}
 	}
+        cout << "Best generation: " << get_guess(decode(best)) << endl;
+        cout << "Diff: " << check_guess(decode(best)) << endl;
 	return 0;
 }
