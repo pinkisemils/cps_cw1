@@ -6,7 +6,7 @@ EXEC = $(SOURCES:.cpp=.out)
 CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++11
 
 %.out: %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $< $(CXXFLAGS) -o $@
 
 build: $(EXEC)
 

@@ -183,14 +183,44 @@ vector<unsigned int> decode(genome &gen)
     return decoded;
 }
 
+void
+decode_mp(genome &gen, vector<unsigned int> &decoded_out)
+{
+    static vector<unsigned int> this_gene(gen.gene_length);
+
+    for (unsigned int gene = 0, count = 0; gene < gen.bits.size(); gene += gen.gene_length, ++count)
+    {
+        for (unsigned int bit = 0; bit < gen.gene_length; ++bit)
+            this_gene[bit] = gen.bits[gene + bit];
+
+        unsigned int val = 0;
+        unsigned int multiplier = 1;
+        for (unsigned int c_bit = this_gene.size(); c_bit > 0; --c_bit)
+        {
+            val += this_gene[c_bit - 1] * multiplier;
+            multiplier *= 2;
+        }
+        decoded_out[count] = val;
+    }
+}
+
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
-    guesses.reserve(genomes.size());
 
     genomes = epoch(pop_size, genomes);
-    for (unsigned int i = 0; i < genomes.size(); ++i)
-        guesses.push_back(decode(genomes[i]));
+    guesses.reserve(genomes.size());
+
+
+    //http://stackoverflow.com/questions/18669296/c-openmp-parallel-for-loop-alternatives-to-stdvector
+    #pragma omp parallel
+    {
+        #pragma omp parallel for 
+        for (unsigned int i = 0; i < genomes.size(); ++i)
+        {
+            guesses.push_back(decode(genomes[i]));
+        }
+    }
     return guesses;
 }
 
