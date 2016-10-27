@@ -141,9 +141,10 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     vector<thread> threads;
 
     int offset = NUM_ELITE * NUM_COPIES_ELITE;
+    int cores = std::thread::hardware_concurrency();
 
     genome *bbs = &babies[0];
-    # pragma omp parallel for default(shared) num_threads(4)
+    # pragma omp parallel for default(shared) num_threads(cores)
     for (int i=offset; i< pop_size; i=i+2)
     {
         auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
