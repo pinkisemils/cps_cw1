@@ -2,13 +2,21 @@ CXX=g++
 t=time
 SOURCES = $(wildcard *.cpp)
 EXEC = $(SOURCES:.cpp=.out)
+SLOW_EXEC = $(SOURCES:.cpp=slow.out)
 
-CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++11
+
+CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++14
+SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++14 
 
 %.out: %.cpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
+%slow.out: %.cpp
+	$(CXX) $< $(SLOW_CXXFLAGS) -o $@
+
 build: $(EXEC)
+
+slow: $(SLOW_EXEC)
 
 all: build time
 

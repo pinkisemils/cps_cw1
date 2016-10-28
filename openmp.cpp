@@ -8,20 +8,21 @@
 #include <array>
 #include <cstring>
 #include <thread>
+#include <omp.h>
 
 using namespace std;
 using namespace std::chrono;
 
 constexpr char *secret = "A long time ago in a galaxy far, far away....";
 
-constexpr unsigned int GENE_LENGTH = 8;
-constexpr unsigned int NUM_COPIES_ELITE = 4;
-constexpr unsigned int NUM_ELITE = 8;
-constexpr double CROSSOVER_RATE = 0.9;
-constexpr unsigned int POP_SIZE = 512;
-constexpr unsigned int NUM_CHARS = strlen(secret);
-constexpr unsigned int CHROMO_LENGTH = NUM_CHARS * GENE_LENGTH;
-constexpr double MUTATION_RATE = 0.001;
+unsigned int GENE_LENGTH;
+unsigned int NUM_COPIES_ELITE;
+unsigned int NUM_ELITE;
+double CROSSOVER_RATE;
+unsigned int POP_SIZE;
+unsigned int NUM_CHARS;
+unsigned int CHROMO_LENGTH;
+double MUTATION_RATE;
 
 struct genome
 {
@@ -207,20 +208,37 @@ decode_mp(genome &gen, vector<unsigned int> &decoded_out)
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
+    vector<vector<unsigned int>> shit;
 
     genomes = epoch(pop_size, genomes);
     guesses.reserve(genomes.size());
+  for (int i = 0; i < genomes.size(); ++i)
+  {
+      guesses.push_back(std::vector<unsigned int>(NUM_CHARS));
+      guesses[i].reserve(NUM_CHARS);
+  }
 
-
-    //http://stackoverflow.com/questions/18669296/c-openmp-parallel-for-loop-alternatives-to-stdvector
-    #pragma omp parallel
+    # pragma omp parallel for default(shared)
+    for (unsigned int i = 0; i < genomes.size(); ++i)
     {
-        #pragma omp parallel for 
-        for (unsigned int i = 0; i < genomes.size(); ++i)
-        {
-            guesses.push_back(decode(genomes[i]));
-        }
+      static vector<unsigned int> this_gene(genomes[i].gene_length);
+
+      for (unsigned int gene = 0, count = 0; gene < genomes[i].bits.size(); gene += genomes[i].gene_length, ++count)
+      {
+          for (unsigned int bit = 0; bit < genomes[i].gene_length; ++bit)
+              this_gene[bit] = genomes[i].bits[gene + bit];
+
+          unsigned int val = 0;
+          unsigned int multiplier = 1;
+          for (unsigned int c_bit = this_gene.size(); c_bit > 0; --c_bit)
+          {
+              val += this_gene[c_bit - 1] * multiplier;
+              multiplier *= 2;
+          }
+          guesses[i][count] = val;
+      }
     }
+
     return guesses;
 }
 
@@ -250,6 +268,15 @@ string get_guess(const vector<unsigned int> &guess)
 
 int main()
 {
+    GENE_LENGTH = 8;
+    NUM_COPIES_ELITE = 4;
+    NUM_ELITE = 8;
+    CROSSOVER_RATE = 0.9;
+    POP_SIZE = 512;
+    NUM_CHARS = strlen(secret);
+    CHROMO_LENGTH = NUM_CHARS * GENE_LENGTH;
+    MUTATION_RATE = 0.001;
+
     default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     uniform_int_distribution<unsigned int> int_dist(0, 1);
     vector<genome> genomes(POP_SIZE);
