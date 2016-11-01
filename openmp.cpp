@@ -223,9 +223,8 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     # pragma omp parallel for default(shared) private(this_gene)
     for (unsigned int i = 0; i < genomes.size(); ++i)
     {
-      static vector<unsigned int> this_gene(genomes[i].gene_length);
 
-      for (unsigned int gene = 0, count = 0; gene < genomes[i].bits.size(); gene += genomes[i].gene_length, ++count)
+      for (unsigned int gene = 0, count = 0; gene < CHROMO_LENGTH; gene += GENE_LENGTH, ++count)
       {
           for (unsigned int bit = 0; bit < GENE_LENGTH; ++bit)
               this_gene[bit] = genomes[i].bits[gene + bit];
