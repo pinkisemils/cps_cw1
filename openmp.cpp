@@ -212,25 +212,27 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
 
     genomes = epoch(pop_size, genomes);
     guesses.reserve(genomes.size());
-  for (int i = 0; i < genomes.size(); ++i)
-  {
-      guesses.push_back(std::vector<unsigned int>(NUM_CHARS));
-      guesses[i].reserve(NUM_CHARS);
-  }
+    for (int i = 0; i < genomes.size(); ++i)
+    {
+        guesses.push_back(std::vector<unsigned int>(NUM_CHARS));
+        guesses[i].reserve(NUM_CHARS);
+    }
 
-    # pragma omp parallel for default(shared)
+
+    unsigned int this_gene[GENE_LENGTH];
+    # pragma omp parallel for default(shared) private(this_gene)
     for (unsigned int i = 0; i < genomes.size(); ++i)
     {
       static vector<unsigned int> this_gene(genomes[i].gene_length);
 
       for (unsigned int gene = 0, count = 0; gene < genomes[i].bits.size(); gene += genomes[i].gene_length, ++count)
       {
-          for (unsigned int bit = 0; bit < genomes[i].gene_length; ++bit)
+          for (unsigned int bit = 0; bit < GENE_LENGTH; ++bit)
               this_gene[bit] = genomes[i].bits[gene + bit];
 
           unsigned int val = 0;
           unsigned int multiplier = 1;
-          for (unsigned int c_bit = this_gene.size(); c_bit > 0; --c_bit)
+          for (unsigned int c_bit = GENE_LENGTH; c_bit > 0; --c_bit)
           {
               val += this_gene[c_bit - 1] * multiplier;
               multiplier *= 2;

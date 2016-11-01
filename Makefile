@@ -2,7 +2,13 @@ CXX=g++
 t=time
 SOURCES = $(wildcard *.cpp)
 EXEC = $(SOURCES:.cpp=.out)
-SLOW_EXEC = $(SOURCES:.cpp=slow.out)
+SLOW_EXEC = $(SOURCES:.cpp=.sout)
+TIME_OUT = $(EXEC:.out=.timed)	
+PERF_PROFILES = $(EXEC:.out=.perf)
+FOLDED_STACKS = $(PERF_PROFILES:.perf=.folded)
+FLAME_GRAPHS = $(FOLDED_STACKS:.folded=.svg)
+SC = stackcollapse-perf.pl
+FG = flamegraph.pl
 
 
 CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++14
@@ -21,21 +27,32 @@ slow: $(SLOW_EXEC)
 all: build time
 
 
-time: $(EXEC)
-	 $(foreach e,$(EXEC), echo $(e) && $(t) ./$(e) ;)
+
+time: $(TIME_OUT)
+%.timed: %.out
+	 $(t) ./$< > $@
 
 clean:
-	rm -f *.out
+	rm -f *.out *.folded *.svg *.p1
 
-perf:
-	perf record -g --output openmp.perf ./openmp
-	perf script -i openmp.perf | c++filt | gprof2dot -f perf | dot -Tpng -o openmp-perf.png
-	perf record -g --output serial.perf ./serial
-	perf script -i serial.perf | c++filt | gprof2dot -f perf | dot -Tpng -o serial-perf.png
-	perf record -g --output threaded.perf ./threaded
-	perf script -i threaded.perf | c++filt | gprof2dot -f perf | dot -Tpng -o threaded-perf.png
-	perf record -g --output futures.perf ./futures
-	perf script -i futures.perf | c++filt | gprof2dot -f perf | dot -Tpng -o futures-perf.png
+clean_perf:
+	rm -f *.perf
+
+perf: $(PERF_PROFILES)
+
+%.p1: %.out
+	perf record -g --output $@ ./$<
+
+%.perf: %.p1
+	perf script --symfs=. -i $< > $@
+
+%.folded: %.perf
+	$(SC) $< > $@
+
+%.svg: %.folded
+	$(FG) $< > $@
+
+flamegraphs: $(FLAME_GRAPHS)
 
 callgrind:
 	valgrind --tool=callgrind --callgrind-out-file=openmp.cg ./openmp
@@ -46,4 +63,5 @@ callgrind:
 	gprof2dot -f callgrind <threaded.cg | dot -Tpng -o threaded-cg.png
 	valgrind --tool=callgrind --callgrind-out-file=futures.cg ./futures
 	gprof2dot -f callgrind <futures.cg | dot -Tpng -o futures-cg.png
+
 .PHONY: build
