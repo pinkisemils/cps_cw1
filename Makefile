@@ -2,22 +2,22 @@ CXX=g++
 t=time
 SOURCES = $(wildcard *.cpp)
 EXEC = $(SOURCES:.cpp=.out)
-SLOW_EXEC = $(SOURCES:.cpp=.sout)
+SLOW_EXEC = $(SOURCES:.cpp=slow.out)
 TIME_OUT = $(EXEC:.out=.timed)	
-PERF_PROFILES = $(EXEC:.out=.perf)
+PERF_PROFILES = $(EXEC:.out=.perf) $(SLOW_EXEC:.out=.perf)
 FOLDED_STACKS = $(PERF_PROFILES:.perf=.folded)
-FLAME_GRAPHS = $(FOLDED_STACKS:.folded=.svg)
-SC = stackcollapse-perf.pl
-FG = flamegraph.pl
+FLAME_GRAPHS = $(FOLDED_STACKS:.folded=.svg) 
+SC = stackcollapse-perf
+FG = flamegraph
 
 
-CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++14
-SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++14 
+CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++14 -fno-omit-frame-pointer
+SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++14 -fno-omit-frame-pointer
 
 %.out: %.cpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-%slow.out: %.cpp
+%.slow.out: %.cpp
 	$(CXX) $< $(SLOW_CXXFLAGS) -o $@
 
 build: $(EXEC)
@@ -41,10 +41,10 @@ clean_perf:
 perf: $(PERF_PROFILES)
 
 %.p1: %.out
-	perf record -g --output $@ ./$<
+	perf record -g --call-graph dwarf --output $@ ./$<
 
 %.perf: %.p1
-	perf script --symfs=. -i $< > $@
+	perf script -i $< > $@
 
 %.folded: %.perf
 	$(SC) $< > $@
