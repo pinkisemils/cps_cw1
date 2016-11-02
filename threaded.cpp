@@ -35,10 +35,10 @@ struct genome
     unsigned int gene_length = GENE_LENGTH;
 };
 
-struct worker_thread
-{
-    genome* genomes;
-};
+//struct worker_thread
+//{
+//    genome* genomes;
+//};
 
 genome best;
 
@@ -81,7 +81,7 @@ const genome& roulette_wheel_selection(unsigned int pop_size, const unsigned int
     return genomes[0];
 }
 
-void cross_over(double crossover_rate, unsigned int chromo_length, const genome &mum, const genome &dad, genome &baby1, genome &baby2)
+void cross_over(double crossover_rate, unsigned int chromo_length, const genome &mum, const genome &dad, genome *baby1, genome *baby2)
 {
     static default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     static uniform_real_distribution<double> float_dist;
@@ -89,27 +89,27 @@ void cross_over(double crossover_rate, unsigned int chromo_length, const genome 
 
     if (float_dist(e) > crossover_rate || mum.bits == dad.bits)
     {
-        baby1.bits = mum.bits;
-        baby2.bits = mum.bits;
+        baby1->bits = mum.bits;
+        baby2->bits = mum.bits;
     }
     else
     {
         const unsigned int cp = int_dist(e);
 
-        baby1.bits.insert(baby1.bits.end(), mum.bits.begin(), mum.bits.begin() + cp);
-        baby1.bits.insert(baby1.bits.end(), dad.bits.begin() + cp, dad.bits.end());
-        baby2.bits.insert(baby2.bits.end(), dad.bits.begin(), dad.bits.begin() + cp);
-        baby2.bits.insert(baby2.bits.end(), mum.bits.begin() + cp, mum.bits.end());
+        baby1->bits.insert(baby1->bits.end(), mum.bits.begin(), mum.bits.begin() + cp);
+        baby1->bits.insert(baby1->bits.end(), dad.bits.begin() + cp, dad.bits.end());
+        baby2->bits.insert(baby2->bits.end(), dad.bits.begin(), dad.bits.begin() + cp);
+        baby2->bits.insert(baby2->bits.end(), mum.bits.begin() + cp, mum.bits.end());
     }
 }
 
-void mutate(double mutation_rate, genome &gen)
+void mutate(double mutation_rate, genome *gen)
 {
     static default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     static uniform_real_distribution<double> dist;
     double rnd;
 
-    for (auto &bit : gen.bits)
+    for (auto &bit : gen->bits)
     {
         rnd = dist(e);
         if (rnd < mutation_rate)
@@ -123,33 +123,17 @@ void epoch_st(unsigned int pop_size,
              genome* babies,
              int step_size)
 {
-    cout << " fitness " << fitness << endl;
-    cout << " pop_size " << pop_size << endl;
-    cout << " step_size " << step_size << endl;
-    try{
-        for (int itr=0; itr < step_size; itr+=2) {
-            auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
-            auto dad = roulette_wheel_selection(pop_size, fitness, genomes);
-            genome baby1;
-            genome baby2;
+    for (int itr = 0; itr < step_size; itr+=2) {
+        auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
+        auto dad = roulette_wheel_selection(pop_size, fitness, genomes);
+        genome baby1;
+        genome baby2;
 
-            cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, baby1, baby2);
-            mutate(MUTATION_RATE, baby1);
-            mutate(MUTATION_RATE, baby2);
-            cout << "itr == " << itr << std::endl;
-            babies[itr] = baby1;
-            babies[itr + 1] = baby2;
-        }
+        cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, &babies[itr], &babies[itr+1]);
+        mutate(MUTATION_RATE,  &babies[itr]);
+        mutate(MUTATION_RATE,  &babies[itr+1]);
     }
-    catch (...) {
-              std::cerr << "Invalid argument: " << '\n';
-              std::cerr << "WHAT THE FUCK" << '\n';
-              std::cerr << "WHAT THE FUCK" << '\n';
-                
-    }
-    cout << "WHAT THE FUCK" << std::endl;
-
-
+    return;
 }
 
 vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
@@ -157,19 +141,18 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     auto fitness = calculate_total_fitness(genomes);
     vector<genome> babies(pop_size);
     babies.reserve(pop_size);
+    vector<thread> threads(CORES-1);
 
-    CORES=1;
     if (((NUM_COPIES_ELITE * NUM_ELITE) % 2) == 0)
         grab_N_best(NUM_ELITE, NUM_COPIES_ELITE, genomes, babies);
-    vector<thread> threads(CORES);
     int offset = NUM_ELITE * NUM_COPIES_ELITE;
     int step = (pop_size - offset) / CORES;
-    cout << "step : " << step << endl;
     for (int i=0; i< CORES-1; ++i)
     {
-        threads.push_back(std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + i*step], step));
+        threads[i] = std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + i*step], step);
     }
-    threads.push_back(std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + ((CORES-1)*step)], step + step%CORES));
+    epoch_st(pop_size, fitness, &genomes[0], &babies[offset + ((CORES-1)*step)], step + step%CORES);
+
     for (auto &t : threads)
     {
         t.join();
@@ -225,15 +208,15 @@ void decode_st(genome *genes, vector<unsigned int> *output, int chunk_size )
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
-    vector<thread> threads;
+    vector<thread> threads(CORES-1);
     guesses.reserve(genomes.size());
 
     genomes = epoch(pop_size, genomes);
 
-    // Allocate memory for the guesses vector 
+    // Allocate memory for the guesses vector
     // Imagine a world where a vector can be constructed out of a 2d array
     //  WITHOUT A MEMCPY()
-    
+
     for (int i = 0; i < genomes.size(); ++i)
     {
         guesses.push_back(std::vector<unsigned int>(NUM_CHARS));
@@ -242,10 +225,10 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     int chunk_size = POP_SIZE/ CORES;
     for (int i = 0; i< CORES-1; ++i )
     {
-        threads.push_back(std::thread(decode_st,&genomes[chunk_size * i], &guesses[chunk_size * i], chunk_size));
+        threads[i] = std::thread(decode_st,&genomes[chunk_size * i], &guesses[chunk_size * i], chunk_size);
     }
     // have to account for weird population sizes/core counts
-    threads.push_back(std::thread(decode_st, &genomes[chunk_size * (CORES-1)], &guesses[chunk_size * (CORES-1)], chunk_size + POP_SIZE%CORES));
+    decode_st(&genomes[chunk_size * (CORES-1)], &guesses[chunk_size * (CORES-1)], chunk_size + POP_SIZE%CORES);
 
     for (auto &t : threads)
     {

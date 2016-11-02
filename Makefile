@@ -40,6 +40,9 @@ clean:
 clean_perf:
 	rm -f *.perf
 
+clean_timed:
+	rm -f *.timed
+
 perf: $(PERF_PROFILES)
 
 %.p1: %.out
