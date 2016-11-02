@@ -7,6 +7,8 @@ TIME_OUT = $(EXEC:.out=.timed)
 PERF_PROFILES = $(EXEC:.out=.perf) $(SLOW_EXEC:.out=.perf)
 FOLDED_STACKS = $(PERF_PROFILES:.perf=.folded)
 FLAME_GRAPHS = $(FOLDED_STACKS:.folded=.svg) 
+CALLGRIND_PROF = $(EXEC:.out=.cg) $(SLOW_EXEC:.out=.cg)
+CALLGRIND_PROF_PNG = $(CALLGRIND_PROF:.cg=.cg.png)
 SC = stackcollapse-perf
 FG = flamegraph
 
@@ -17,7 +19,7 @@ SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++14 -fno-omit-frame-pointer
 %.out: %.cpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-%.slow.out: %.cpp
+%slow.out: %.cpp
 	$(CXX) $< $(SLOW_CXXFLAGS) -o $@
 
 build: $(EXEC)
@@ -54,14 +56,12 @@ perf: $(PERF_PROFILES)
 
 flamegraphs: $(FLAME_GRAPHS)
 
-callgrind:
-	valgrind --tool=callgrind --callgrind-out-file=openmp.cg ./openmp
-	gprof2dot -f callgrind <openmp.cg | dot -Tpng -o openmp-cg.png
-	valgrind --tool=callgrind --callgrind-out-file=serial.cg ./serial
-	gprof2dot -f callgrind <serial.cg | dot -Tpng -o serial-cg.png
-	valgrind --tool=callgrind --callgrind-out-file=threaded.cg ./threaded
-	gprof2dot -f callgrind <threaded.cg | dot -Tpng -o threaded-cg.png
-	valgrind --tool=callgrind --callgrind-out-file=futures.cg ./futures
-	gprof2dot -f callgrind <futures.cg | dot -Tpng -o futures-cg.png
+callgrind: $CALLGRIND_PROF
+
+%.cg: %.out
+	valgrind --tool=callgrind --callgrind-out-file=$@ ./$<
+
+%.cg.png: %.cg
+	gprof2dot -f callgrind <$< | dot -Tpng -o $@
 
 .PHONY: build

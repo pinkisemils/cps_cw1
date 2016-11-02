@@ -51,8 +51,6 @@ void grab_N_best(const unsigned int N, const unsigned int copies, vector<genome>
 {
     sort(old_pop.begin(), old_pop.end(), comp_by_fitness);
     best = old_pop[0];
-    // preallocating to make it thread-safe
-    //new_pop.reserve(old_pop.size() + 1);
     for (unsigned int n = 0; n < N; ++n)
         for (unsigned int i = 0; i < copies; ++i)
             new_pop[n * copies + i] = old_pop[n];
@@ -208,7 +206,6 @@ decode_mp(genome &gen, vector<unsigned int> &decoded_out)
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
-    vector<vector<unsigned int>> shit;
 
     genomes = epoch(pop_size, genomes);
     guesses.reserve(genomes.size());
@@ -219,24 +216,23 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     }
 
 
-    unsigned int this_gene[GENE_LENGTH];
-    # pragma omp parallel for default(shared) private(this_gene)
+    # pragma omp parallel for default(shared)
     for (unsigned int i = 0; i < genomes.size(); ++i)
     {
 
       for (unsigned int gene = 0, count = 0; gene < CHROMO_LENGTH; gene += GENE_LENGTH, ++count)
       {
-          for (unsigned int bit = 0; bit < GENE_LENGTH; ++bit)
-              this_gene[bit] = genomes[i].bits[gene + bit];
 
           unsigned int val = 0;
           unsigned int multiplier = 1;
+          guesses[i][count] = 0;
           for (unsigned int c_bit = GENE_LENGTH; c_bit > 0; --c_bit)
           {
-              val += this_gene[c_bit - 1] * multiplier;
+              val += genomes[i].bits[gene + c_bit - 1] * multiplier;
               multiplier *= 2;
           }
           guesses[i][count] = val;
+          
       }
     }
 
