@@ -23,6 +23,8 @@ constexpr unsigned int NUM_CHARS = strlen(secret);
 constexpr unsigned int CHROMO_LENGTH = NUM_CHARS * GENE_LENGTH;
 constexpr double MUTATION_RATE = 0.001;
 
+unsigned int CORES;
+
 struct genome
 {
     vector<unsigned int> bits;
@@ -144,9 +146,12 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     int step = (pop_size - offset) / cores;
     for (int i=0; i< cores; ++i)
     {
-        threads.push_back(std::thread([&pop_size, &fitness, &genomes, &babies, &step, &offset, i](){
-                epoch_st(pop_size, fitness,  genomes, babies, step, step * i + offset);
-        }));
+    //threads.push_back(std::thread([&pop_size, &fitness, &genomes, &babies, &step, &offset, i](){
+    //        epoch_st(pop_size, fitness,  genomes, babies, step, step * i + offset);
+    //}));
+        threads.push_back(std::thread(epoch_st, pop_size, fitness,  std::ref(genomes), std::ref(babies), step, step * i + offset));
+                
+        
 
     }
     for (auto &t : threads)
@@ -170,7 +175,8 @@ vector<unsigned int> decode(genome &gen)
         unsigned int multiplier = 1;
         for (unsigned int c_bit = this_gene.size(); c_bit > 0; --c_bit)
         {
-            val += this_gene[c_bit - 1] * multiplier;
+            //val += this_gene[c_bit - 1] * multiplier;
+            val += gen.bits[gene + c_bit - 1] * multiplier;
             multiplier *= 2;
         }
         decoded[count] = val;
@@ -178,14 +184,62 @@ vector<unsigned int> decode(genome &gen)
     return decoded;
 }
 
+void decode_st(genome *genes, vector<unsigned int> *output, int chunk_size )
+{
+
+
+    for (int out_i = 0; out_i < chunk_size; ++out_i)
+    {
+        genome gen = genes[out_i];
+        for (unsigned int gene = 0, count = 0; gene < gen.bits.size(); gene += gen.gene_length, ++count)
+        {
+            unsigned int val = 0;
+            unsigned int multiplier = 1;
+            for (unsigned int c_bit = GENE_LENGTH; c_bit > 0; --c_bit)
+            {
+                //val += this_gene[c_bit - 1] * multiplier;
+                val += gen.bits[gene + c_bit - 1] * multiplier;
+                multiplier *= 2;
+            }
+            output[out_i][count] = val;
+        }
+    }
+}
+
 vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     vector<vector<unsigned int>> guesses;
+    vector<thread> threads;
     guesses.reserve(genomes.size());
 
     genomes = epoch(pop_size, genomes);
-    for (unsigned int i = 0; i < genomes.size(); ++i)
-        guesses.push_back(decode(genomes[i]));
+
+    // Allocate memory for the guesses vector 
+    // Imagine a world where a vector can be constructed out of a 2d array
+    //  WITHOUT A MEMCPY()
+    
+    for (int i = 0; i < genomes.size(); ++i)
+    {
+        guesses.push_back(std::vector<unsigned int>(NUM_CHARS));
+        guesses[i].reserve(NUM_CHARS);
+    }
+    int chunk_size = POP_SIZE/ CORES;
+    for (int i = 0; i< CORES-1; ++i )
+    {
+        threads.push_back(std::thread(decode_st,&genomes[chunk_size * i], &guesses[chunk_size * i], chunk_size));
+    }
+    // have to account for weird population sizes/core counts
+    threads.push_back(std::thread(decode_st, &genomes[chunk_size * (CORES-1)], &guesses[chunk_size * (CORES-1)], chunk_size + POP_SIZE%CORES));
+
+    for (auto &t : threads)
+    {
+        t.join();
+    }
+
+
+
+    
+
     return guesses;
 }
 
@@ -215,6 +269,7 @@ string get_guess(const vector<unsigned int> &guess)
 
 int main()
 {
+    CORES = std::thread::hardware_concurrency();
     default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     uniform_int_distribution<unsigned int> int_dist(0, 1);
     vector<genome> genomes(POP_SIZE);
@@ -237,6 +292,6 @@ int main()
     }
     cout << "Best generation: " << get_guess(decode(best)) << endl;
     cout << "Diff: " << check_guess(decode(best)) << endl;
-    cout<< "Number of threads:" << std::thread::hardware_concurrency() << endl;
+    cout<< "Number of threads:" << CORES << endl;
     return 0;
 }
