@@ -8,6 +8,8 @@
 #include <array>
 #include <cstring>
 #include <thread>
+#include <unistd.h>
+
 
 using namespace std;
 using namespace std::chrono;
@@ -25,11 +27,17 @@ constexpr double MUTATION_RATE = 0.001;
 
 unsigned int CORES;
 
+
 struct genome
 {
     vector<unsigned int> bits;
     unsigned int fitness = 0.0;
     unsigned int gene_length = GENE_LENGTH;
+};
+
+struct worker_thread
+{
+    genome* genomes;
 };
 
 genome best;
@@ -57,7 +65,7 @@ void grab_N_best(const unsigned int N, const unsigned int copies, vector<genome>
             new_pop[n * copies + i] = old_pop[n];
 }
 
-const genome& roulette_wheel_selection(unsigned int pop_size, const unsigned int fitness, const vector<genome> &genomes)
+const genome& roulette_wheel_selection(unsigned int pop_size, const unsigned int fitness, const genome* genomes)
 {
     static default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     static uniform_real_distribution<double> dist;
@@ -111,25 +119,36 @@ void mutate(double mutation_rate, genome &gen)
 
 void epoch_st(unsigned int pop_size,
              int fitness,
-             vector<genome> &genomes,
-             vector<genome> &babies,
-             int step_size,
-             int offset)
+             genome* genomes,
+             genome* babies,
+             int step_size)
 {
-    int counter = 0;
-    for (int itr=0; itr < step_size; itr+=2) {
-        ++counter;
-        auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
-        auto dad = roulette_wheel_selection(pop_size, fitness, genomes);
-        genome baby1;
-        genome baby2;
+    cout << " fitness " << fitness << endl;
+    cout << " pop_size " << pop_size << endl;
+    cout << " step_size " << step_size << endl;
+    try{
+        for (int itr=0; itr < step_size; itr+=2) {
+            auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
+            auto dad = roulette_wheel_selection(pop_size, fitness, genomes);
+            genome baby1;
+            genome baby2;
 
-        cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, baby1, baby2);
-        mutate(MUTATION_RATE, baby1);
-        mutate(MUTATION_RATE, baby2);
-        babies[itr + offset] = baby1;
-        babies[itr + 1 + offset ] = baby2;
+            cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, baby1, baby2);
+            mutate(MUTATION_RATE, baby1);
+            mutate(MUTATION_RATE, baby2);
+            cout << "itr == " << itr << std::endl;
+            babies[itr] = baby1;
+            babies[itr + 1] = baby2;
+        }
     }
+    catch (...) {
+              std::cerr << "Invalid argument: " << '\n';
+              std::cerr << "WHAT THE FUCK" << '\n';
+              std::cerr << "WHAT THE FUCK" << '\n';
+                
+    }
+    cout << "WHAT THE FUCK" << std::endl;
+
 
 }
 
@@ -137,23 +156,20 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
 {
     auto fitness = calculate_total_fitness(genomes);
     vector<genome> babies(pop_size);
+    babies.reserve(pop_size);
 
+    CORES=1;
     if (((NUM_COPIES_ELITE * NUM_ELITE) % 2) == 0)
         grab_N_best(NUM_ELITE, NUM_COPIES_ELITE, genomes, babies);
-    vector<thread> threads;
+    vector<thread> threads(CORES);
     int offset = NUM_ELITE * NUM_COPIES_ELITE;
-    int cores = std::thread::hardware_concurrency();
-    int step = (pop_size - offset) / cores;
-    for (int i=0; i< cores; ++i)
+    int step = (pop_size - offset) / CORES;
+    cout << "step : " << step << endl;
+    for (int i=0; i< CORES-1; ++i)
     {
-    //threads.push_back(std::thread([&pop_size, &fitness, &genomes, &babies, &step, &offset, i](){
-    //        epoch_st(pop_size, fitness,  genomes, babies, step, step * i + offset);
-    //}));
-        threads.push_back(std::thread(epoch_st, pop_size, fitness,  std::ref(genomes), std::ref(babies), step, step * i + offset));
-                
-        
-
+        threads.push_back(std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + i*step], step));
     }
+    threads.push_back(std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + ((CORES-1)*step)], step + step%CORES));
     for (auto &t : threads)
     {
         t.join();
@@ -235,10 +251,6 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     {
         t.join();
     }
-
-
-
-    
 
     return guesses;
 }

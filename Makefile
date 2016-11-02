@@ -13,8 +13,8 @@ SC = stackcollapse-perf
 FG = flamegraph
 
 
-CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++14 -fno-omit-frame-pointer
-SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++14 -fno-omit-frame-pointer
+CXXFLAGS= -O3 -g -fopenmp -lpthread -std=c++11 -fno-omit-frame-pointer
+SLOW_CXXFLAGS= -g -fopenmp -lpthread -std=c++11 -fno-omit-frame-pointer
 
 %.out: %.cpp
 	$(CXX) $< $(CXXFLAGS) -o $@
