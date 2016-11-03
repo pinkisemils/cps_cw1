@@ -193,12 +193,12 @@ void decode_st(genome *genes, vector<unsigned int> *output, int chunk_size )
         for (unsigned int gene = 0, count = 0; gene < gen.bits.size(); gene += gen.gene_length, ++count)
         {
             unsigned int val = 0;
-            unsigned int multiplier = 1;
-            for (unsigned int c_bit = GENE_LENGTH; c_bit > 0; --c_bit)
+            unsigned int multiplier = 1<< GENE_LENGTH;
+
+            for (unsigned int c_bit = 0; c_bit < GENE_LENGTH; ++c_bit)
             {
-                //val += this_gene[c_bit - 1] * multiplier;
-                val += gen.bits[gene + c_bit - 1] * multiplier;
-                multiplier *= 2;
+                multiplier /= 2;
+                val += gen.bits[gene + c_bit] * multiplier;
             }
             output[out_i][count] = val;
         }
