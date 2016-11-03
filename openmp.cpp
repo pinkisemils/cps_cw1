@@ -224,12 +224,13 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
       {
 
           unsigned int val = 0;
-          unsigned int multiplier = 1;
           guesses[i][count] = 0;
-          for (unsigned int c_bit = GENE_LENGTH; c_bit > 0; --c_bit)
+          unsigned int multiplier = 1<< GENE_LENGTH;
+          # pragma omp simd
+          for (unsigned int c_bit = 0; c_bit < GENE_LENGTH; ++c_bit)
           {
-              val += genomes[i].bits[gene + c_bit - 1] * multiplier;
-              multiplier *= 2;
+              multiplier /= 2;
+              val += genomes[i].bits[gene + c_bit] * multiplier;
           }
           guesses[i][count] = val;
           
