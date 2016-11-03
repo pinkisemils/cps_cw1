@@ -9,6 +9,7 @@ FOLDED_STACKS = $(PERF_PROFILES:.perf=.folded)
 FLAME_GRAPHS = $(FOLDED_STACKS:.folded=.svg) 
 CALLGRIND_PROF = $(EXEC:.out=.cg) $(SLOW_EXEC:.out=.cg)
 CALLGRIND_PROF_PNG = $(CALLGRIND_PROF:.cg=.cg.png)
+TIMER = $(EXEC:.out=.timer)
 SC = stackcollapse-perf
 FG = flamegraph
 
@@ -29,6 +30,10 @@ slow: $(SLOW_EXEC)
 all: build time
 
 
+
+timeM: $(TIMER)
+%.timer: %.out
+	$(t) --format "%E %S %U %P" ./$< 
 
 time: $(TIME_OUT)
 %.timed: %.out
