@@ -216,7 +216,7 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     }
 
 
-    # pragma omp parallel for default(shared) num_threads(1)
+    # pragma omp parallel for default(shared)
     for (unsigned int i = 0; i < genomes.size(); ++i)
     {
 
@@ -226,6 +226,7 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
           unsigned int val = 0;
           guesses[i][count] = 0;
           unsigned int multiplier = 1<< GENE_LENGTH;
+          # pragma omp simd
           for (unsigned int c_bit = 0; c_bit < GENE_LENGTH; ++c_bit)
           {
               multiplier /= 2;
