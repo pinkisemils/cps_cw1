@@ -257,9 +257,13 @@ string get_guess(const vector<unsigned int> &guess)
     return s;
 }
 
-int main()
+ int main(int argc, char *argv[])
 {
     CORES = std::thread::hardware_concurrency();
+    if (argc >1 ) 
+    {
+        CORES = std::stoi(argv[1]);
+    }
     default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     uniform_int_distribution<unsigned int> int_dist(0, 1);
     vector<genome> genomes(POP_SIZE);

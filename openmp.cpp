@@ -23,6 +23,7 @@ unsigned int POP_SIZE;
 unsigned int NUM_CHARS;
 unsigned int CHROMO_LENGTH;
 double MUTATION_RATE;
+unsigned int CORES;
 
 struct genome
 {
@@ -143,7 +144,7 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     int cores = std::thread::hardware_concurrency();
 
     genome *bbs = &babies[0];
-    # pragma omp parallel for default(shared) num_threads(cores)
+    # pragma omp parallel for default(shared) num_threads(CORES)
     for (int i=offset; i< pop_size; i=i+2)
     {
         auto mum = roulette_wheel_selection(pop_size, fitness, genomes);
@@ -216,7 +217,7 @@ vector<vector<unsigned int>> update_epoch(unsigned int pop_size, vector<genome> 
     }
 
 
-    # pragma omp parallel for default(shared)
+    # pragma omp parallel for default(shared) num_threads(CORES)
     for (unsigned int i = 0; i < genomes.size(); ++i)
     {
 
@@ -263,8 +264,13 @@ string get_guess(const vector<unsigned int> &guess)
     return s;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    CORES = std::thread::hardware_concurrency();
+    if (argc >1 ) 
+    {
+        CORES = std::stoi(argv[1]);
+    }
     GENE_LENGTH = 8;
     NUM_COPIES_ELITE = 4;
     NUM_ELITE = 8;
@@ -296,5 +302,6 @@ int main()
     }
     cout << "Best generation: " << get_guess(decode(best)) << endl;
     cout << "Diff: " << check_guess(decode(best)) << endl;
+    cout << "Corse used: " << CORES << endl;
     return 0;
 }
