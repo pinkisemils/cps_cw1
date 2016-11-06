@@ -35,11 +35,6 @@ struct genome
     unsigned int gene_length = GENE_LENGTH;
 };
 
-//struct worker_thread
-//{
-//    genome* genomes;
-//};
-
 genome best;
 
 unsigned int calculate_total_fitness(const vector<genome> &genomes)
@@ -81,7 +76,7 @@ const genome& roulette_wheel_selection(unsigned int pop_size, const unsigned int
     return genomes[0];
 }
 
-void cross_over(double crossover_rate, unsigned int chromo_length, const genome &mum, const genome &dad, genome *baby1, genome *baby2)
+void cross_over(double crossover_rate, unsigned int chromo_length, const genome &mum, const genome &dad, genome &baby1, genome &baby2)
 {
     static default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     static uniform_real_distribution<double> float_dist;
@@ -89,27 +84,27 @@ void cross_over(double crossover_rate, unsigned int chromo_length, const genome 
 
     if (float_dist(e) > crossover_rate || mum.bits == dad.bits)
     {
-        baby1->bits = mum.bits;
-        baby2->bits = mum.bits;
+        baby1.bits = mum.bits;
+        baby2.bits = mum.bits;
     }
     else
     {
         const unsigned int cp = int_dist(e);
 
-        baby1->bits.insert(baby1->bits.end(), mum.bits.begin(), mum.bits.begin() + cp);
-        baby1->bits.insert(baby1->bits.end(), dad.bits.begin() + cp, dad.bits.end());
-        baby2->bits.insert(baby2->bits.end(), dad.bits.begin(), dad.bits.begin() + cp);
-        baby2->bits.insert(baby2->bits.end(), mum.bits.begin() + cp, mum.bits.end());
+        baby1.bits.insert(baby1.bits.end(), mum.bits.begin(), mum.bits.begin() + cp);
+        baby1.bits.insert(baby1.bits.end(), dad.bits.begin() + cp, dad.bits.end());
+        baby2.bits.insert(baby2.bits.end(), dad.bits.begin(), dad.bits.begin() + cp);
+        baby2.bits.insert(baby2.bits.end(), mum.bits.begin() + cp, mum.bits.end());
     }
 }
 
-void mutate(double mutation_rate, genome *gen)
+void mutate(double mutation_rate, genome &gen)
 {
     static default_random_engine e(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
     static uniform_real_distribution<double> dist;
     double rnd;
 
-    for (auto &bit : gen->bits)
+    for (auto &bit : gen.bits)
     {
         rnd = dist(e);
         if (rnd < mutation_rate)
@@ -129,9 +124,9 @@ void epoch_st(unsigned int pop_size,
         genome baby1;
         genome baby2;
 
-        cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, &babies[itr], &babies[itr+1]);
-        mutate(MUTATION_RATE,  &babies[itr]);
-        mutate(MUTATION_RATE,  &babies[itr+1]);
+        cross_over(CROSSOVER_RATE, CHROMO_LENGTH, mum, dad, babies[itr], babies[itr+1]);
+        mutate(MUTATION_RATE,  babies[itr]);
+        mutate(MUTATION_RATE,  babies[itr+1]);
     }
     return;
 }
@@ -151,7 +146,7 @@ vector<genome> epoch(unsigned int pop_size, vector<genome> &genomes)
     {
         threads[i] = std::thread(epoch_st, pop_size, fitness, &genomes[0], &babies[offset + i*step], step);
     }
-    epoch_st(pop_size, fitness, &genomes[0], &babies[offset + ((CORES-1)*step)], step + step%CORES);
+    epoch_st(pop_size, fitness, &genomes[0], &babies[offset + ((CORES-1)*step)], step + (pop_size - offset) % CORES);
 
     for (auto &t : threads)
     {
