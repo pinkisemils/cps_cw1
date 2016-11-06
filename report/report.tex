@@ -78,20 +78,60 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
 
 \section{Introduction}
  
-\IEEEPARstart{F}{uck}, this is a template for IEEE transaction reports. \textsc{This bit of text is different.} \LaTeX\ is dead, I don't think anyone actually uses it, and we are all being strung along on a terrible joke.
+%\IEEEPARstart 
 
-\section{Introduction}}
-	\lipsum[1-2]
-	This is how you cite something \cite{mrx05}
+\section{Introduction}%}
+	Evolutionary algorithms are often used to deal with computationally complex problems,
+        as instead of computing a perfect solution, a set of random solutions is iterated upon
+        filtering out best fitting solutions until an arbitrary limit is hit. It is crucial for
+        a problem to have a fitness function for any given solution, otherwise an evolutionary
+        algorithm is impossible for such a solution. Likewise, the fitness function has to be
+        simple and fast, as it would be used to index and compare a set of solutions. Evolutionary
+        algorithms lend themselves well to parallelization as each solution of a new set of solutions
+        does not depend on other new solutions, only on previous solutions. Each solution set is called
+        a generation - the initial generation is randomly generated. Each subsequent generation
+        is created by generating new solutions by combining two random solutions from the previous
+        generation and randomly mutating parts the resulting solutions.
+        
+
 	
 	\subsection{A subsection}
-		\lstinputlisting[caption = A code listing.]{./sourceCode/hello.cpp}
-	
-\section{Section 2}
-	\lipsum[3-5]
+		\lstinputlisting[caption = A code listing.]{./source/hello.cpp}
 
-\section{Section 3}
-	\lipsum[6-8]
+\subsection{Project scope}
+        The project will compare different OpenMP parallelization approaches to a manual multithreading
+        attempt. SIMD optimizations will not be attempted as the given evolutionary algorithm 
+        is limited by random number generation. For large enough population sizes, GPGPU frameworks
+        such as Cuda or OpenCL might be useful, however these are deemed out of scope.
+	
+\subsection{Methodology}
+        To showcase how an evolutionary algorithm can be parallelized, an example implementation
+        has been used, running in a single thread. To identify parts of the program which might
+        bring an increase in performance when parallelized, Callgrind, a profiling tool will be 
+        used. Parallelization will be attempted by manually threading the application and also 
+        using OpenMP. To parallelize the program, certain parts of it will be changed to ensure
+        memory safety. The programs will be ran on an Intel Core i5-3320M in isolation, 100 times
+        for each test case. All code is compiled using GCC's G++ version 6.21. The experiment will
+        test whether or not the randomness of the genetic algorithm has an impact on what method
+        of parallelization is more effective across larger generation sizes.
+        The given example evolutionary algorithm has these input parameters:
+        \begin{itemize}
+            \item \textbf{Population size} - size of each solution set
+            \item \textbf{Gene length} - size of each atomic part of a given solution
+            \item \textbf{Number of elites} - number of elite solutions that will be selected to be over from the last generation
+            \item \textbf{Number of elite replication} - number of replications for each elite that will be carried over to the next generation
+            \item \textbf{Crossover rate} - proportion of the population that will generate offspring
+            \item \textbf{Mutation rate} - probability of a mutation occurring for a given solution
+        \end{itemize}
+        All of the parameters will remain static except for the population size,  to predictably
+        increase the runtime of a program, as for everything else it is assumed that the genetic 
+        algorithm is a black box. The program will be tested with a varying thread count to 
+        see whether the algorithm is ultimately compute bound and parallelized successfully.
+
+
+\section{Evolutionary algorithm}
+        \subsection{Initial analysis} 
+        Profiling the application.
 	
 \section{Section 4}
 	\lipsum[9-10]
