@@ -63,12 +63,12 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
 
 \IEEEtitleabstractindextext{
 \begin{abstract}
-    This is an abstract.
-\end{abstract}
+    An example genetic algorithm has been parallelized using OpenMP and manual threading to see the
+    difference in performance between different parallelization approaches. Possibly due to the fact
+    that the given genetic algorithm was approached as a black box, there was no significant
+    difference found between the simple parallelization techniques.
+\end{abstract}}
 
-\begin{IEEEkeywords}
-    Napier, what(), \LaTeX, OpenMP, multithreading.
-\end{IEEEkeywords}}
 
 \maketitle
 
@@ -77,11 +77,9 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
 \IEEEpeerreviewmaketitle
 
 \section{Introduction}
- 
-%\IEEEPARstart 
 
-\section{Introduction}%}
-	Evolutionary algorithms are often used to deal with computationally complex problems,
+
+        Evolutionary algorithms \cite{evol} are often used to deal with computationally complex problems,
         as instead of computing a perfect solution, a set of random solutions is iterated upon
         filtering out best fitting solutions until an arbitrary limit is hit. It is crucial for
         a problem to have a fitness function for any given solution, otherwise an evolutionary
@@ -93,10 +91,28 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
         is created by generating new solutions by combining two random solutions from the previous
         generation and randomly mutating parts the resulting solutions.
         
+\subsection{OpenMP}
+        OpenMP \cite{openmp} is a multiplatform API that is designed to simplify the parallelization of 
+        single threaded applications on multiple platforms. It allows a programmer to 
+        execute a for loop in parallel by adding a simple declaration of what kind of a 
+        parallelization is to be done, what variables should be shared or private, and
+        what kind of an scheduling model should be used. There are 4 runtime models for
+        scheduling:
+        \begin{itemize}
+                \item Static scheduling - the proportion of the workload that will be divided across multiple threads
+                    will be determined and assigned at runtime
+                \item Dynamic scheduling - the proportion of each workload will still be determined
+                    at compile time, but each workload will be assigned to a thread dynamically
+                \item  Guided scheduling - the workload is divided unevenly and distributed to
+                    threads dynamically at runtime, this allows for idle threads to pick unfinished
+                    portions of a workload
+                   
+                \item Runtime scheduling - in this case scheduling can be determined by 
+        \end{itemize}
 
 	
-	\subsection{A subsection}
-		\lstinputlisting[caption = A code listing.]{./source/hello.cpp}
+        %\subsection{A subsection}
+            %\lstinputlisting[caption = A code listing.]{./source/hello.cpp}
 
 \subsection{Project scope}
         The project will compare different OpenMP parallelization approaches to a manual multithreading
@@ -107,10 +123,11 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
 \subsection{Methodology}
         To showcase how an evolutionary algorithm can be parallelized, an example implementation
         has been used, running in a single thread. To identify parts of the program which might
-        bring an increase in performance when parallelized, Callgrind, a profiling tool will be 
+        bring an increase in performance when parallelized, Callgrind \cite{callgrind}, a profiling tool will be 
         used. Parallelization will be attempted by manually threading the application and also 
         using OpenMP. To parallelize the program, certain parts of it will be changed to ensure
-        memory safety. The programs will be ran on an Intel Core i5-3320M in isolation, 100 times
+        memory safety. The programs will be ran on an Intel Core i5-3320M (2 hyperthreaded cores
+        running at 2.6GHZ, with Turbo frequency at 3.30GHZ) in isolation, 100 times
         for each test case. All code is compiled using GCC's G++ version 6.21. The experiment will
         test whether or not the randomness of the genetic algorithm has an impact on what method
         of parallelization is more effective across larger generation sizes.
@@ -123,63 +140,77 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
             \item \textbf{Crossover rate} - proportion of the population that will generate offspring
             \item \textbf{Mutation rate} - probability of a mutation occurring for a given solution
         \end{itemize}
-        All of the parameters will remain static except for the population size,  to predictably
-        increase the runtime of a program, as for everything else it is assumed that the genetic 
+        All of the parameters will remain static as for everything else it is assumed that the genetic 
         algorithm is a black box. The program will be tested with a varying thread count to 
         see whether the algorithm is ultimately compute bound and parallelized successfully.
 
 
-\section{Evolutionary algorithm}
-        \subsection{Initial analysis} 
-        Profiling the application.
+\section{Parallelization}
+        \subsection{Initial analysis and optimization} 
+        Profiling the application, it became apparent that the slowest parts of program
+        by far are the generation of the next solution set and the decoding of the genomes
+        into printable character sequences ~\ref{fig_singlethreaded_profile}. Since both of these
+        functions of the program are called every generation, it was decided to optimize the program
+        the most optimal thing to do would be to divide the workload and execute these
+        functions in parallel, as both of these functions are essentially pure. This involved making
+        changes to the code as to ensure memory safety and eliminate data races - this involved
+        preallocating memory for output data structures and ensuring that each thread would
+        only ever access a separate part of the output data structure. 
+
+        \lstinputlisting[caption = Parallelized decoding of the program]{./source/threaded.cpp}
+
+        
+        
+        
+        
+
+\section{Results}
+Inspecting the results it is obvious that without changing the genetic algorithm parameters
+that OpenMP scheduling methods don't make any difference here. However, there is a massive
+difference between the manually threaded version and the OpenMP versions when the thread count
+is increased past what the system is capable of doing. It is apparent that hyperthreaded
+has little to no effect when executing these programs as there is no performance increase
+between 2 and 4 threads.
+
 	
-\section{Section 4}
-	\lipsum[9-10]
 	
 \begin{figure}[!t]
-	\centering
-	\includegraphics[width= 0.5\textwidth]{images/exampleImage}
-	\caption{A frog}
-	\label{fig_frog}
+\centering
+\includegraphics[width= 0.5\textwidth]{images/perfgraph}
+\caption{Performance with respect to thread coutn}
+\label{fig_performance_dif}
 \end{figure}
 
-\begin{figure}[!t]
-	\centering
-	\includegraphics[width= 0.5\textwidth]{images/fig2}
-        \caption{A doggo}
-	\label{fig_pup}
-\end{figure}
-
-\begin{table}[!t]
-	\renewcommand{\arraystretch}{1.3}
-	\caption{An Example of a Table}
-	\label{table_example}
-	\centering
-	\begin{tabular}{|c|c|}
-		\hline
-		One & Two\\
-		\hline
-		Three & tabs\\
-		\hline
-	\end{tabular}
-\end{table}
 
 \section{Conclusion}
-The conclusion goes here.
+This evolutionary algorithm is not  random enough to solicit complex scheduling models.
+OpenMP performs better than the manually threaded version when instructed to use more 
+threads than physical cores, however, since this algorithm is not I/O limited, this
+program should never be instructed to use more threads than physical cores, except if
+the program is intended to share a system with other CPU demanding applications.
+
+
+
 
 \newpage
 
 \appendices
-\section{Proof of something}
-	Appendix one text goes here.
 
-\section{}
-	Appendix two text goes here.
-
-\section*{Acknowledgement}
-	The author would like to thank...
+\section{Code profiles}
+	\begin{figure}[!t]
+	\centering
+	\includegraphics[width= 0.5\textwidth]{images/fig_singlethreaded_profile}
+        \caption{Profile of the single threaded program}
+	\label{fig_singlethreaded_profile}
+        \end{figure}
+	\begin{figure}[!t]
+	\centering
+	\includegraphics[width= 0.5\textwidth]{images/fig_multithreaded_profile}
+        \caption{Profile of the multi threaded program}
+	\label{fig_multithreaded_profile}
+        \end{figure}
 
 \bibliographystyle{IEEEtran}
-\bibliography{bibliography}
+\bibliography{report}
 
 \end{document}
