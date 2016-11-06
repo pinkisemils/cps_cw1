@@ -2,8 +2,6 @@
 MT_BINS="openmp.out.static openmp.out.dynamic threaded.out"
 BINS="serial.out futures.out"
 
-TIME="/usr/bin/time"
-MOCK="threaded.out"
 export TIMEFORMAT=%R
 
 
@@ -29,17 +27,21 @@ _time() {
     exec 3>&2
     _time_1 "$@" 2>"$TMPD/timing.$time_label"
     echo "time[$1-$time_label]"
-    cat "$TMPD/timing.$time_label" >> "$1.csv"
+    cat "$TMPD/timing.$time_label" >> "$1-$CORES.csv"
 }
 
 for bin in $MT_BINS
 do
-    for it in {1..100}
+    for cores in {2..6}
     do
-        _time $it "./$bin"
+        for it in {1..1}
+        do
+            CORES=$cores
+            _time $it "./$bin" $cores
+            echo $(pwd)
+        done
     done
 done
-
 
 for bin in $BINS
 do
