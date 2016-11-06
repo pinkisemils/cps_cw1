@@ -120,7 +120,7 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
         is limited by random number generation. For large enough population sizes, GPGPU frameworks
         such as Cuda or OpenCL might be useful, however these are deemed out of scope.
 	
-\subsection{Methodology}
+\section{Methodology}
         To showcase how an evolutionary algorithm can be parallelized, an example implementation
         has been used, running in a single thread. To identify parts of the program which might
         bring an increase in performance when parallelized, Callgrind \cite{callgrind}, a profiling tool will be 
@@ -145,8 +145,7 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
         see whether the algorithm is ultimately compute bound and parallelized successfully.
 
 
-\section{Parallelization}
-        \subsection{Initial analysis and optimization} 
+        \subsection{Analysis and optimization} 
         Profiling the application, it became apparent that the slowest parts of program
         by far are the generation of the next solution set and the decoding of the genomes
         into printable character sequences ~\ref{fig_singlethreaded_profile}. Since both of these
