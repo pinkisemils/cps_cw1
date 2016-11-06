@@ -118,7 +118,7 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
         The project will compare different OpenMP parallelization approaches to a manual multithreading
         attempt. SIMD optimizations will not be attempted as the given evolutionary algorithm 
         is limited by random number generation. For large enough population sizes, GPGPU frameworks
-        such as Cuda or OpenCL might be useful, however these are deemed out of scope.
+        such as Cuda or OpenCL might be useful, however these are deemed out of scope. 
 	
 \section{Methodology}
         To showcase how an evolutionary algorithm can be parallelized, an example implementation
@@ -154,7 +154,8 @@ Edinburgh Napier University, Edinburgh}% <-this % stops an unwanted space
         functions in parallel, as both of these functions are essentially pure. This involved making
         changes to the code as to ensure memory safety and eliminate data races - this involved
         preallocating memory for output data structures and ensuring that each thread would
-        only ever access a separate part of the output data structure. 
+        only ever access a separate part of the output data structure. All OpenMP versions use
+        different versions of scheduling to determine it's impact on performance.
 
         \lstinputlisting[caption = Parallelized decoding of the program]{./source/threaded.cpp}
 
